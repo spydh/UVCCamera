@@ -791,11 +791,11 @@ void UVCPreview::do_capture(JNIEnv *env) {
 
 void UVCPreview::do_capture_idle_loop(JNIEnv *env) {
 	ENTER();
-	
+
 	for (; isRunning() && isCapturing() ;) {
 		do_capture_callback(env, waitCaptureFrame());
 	}
-	
+
 	EXIT();
 }
 
@@ -865,9 +865,13 @@ void UVCPreview::do_capture_callback(JNIEnv *env, uvc_frame_t *frame) {
 				}
 			}
 			jobject buf = env->NewDirectByteBuffer(callback_frame->data, callbackPixelBytes);
-			env->CallVoidMethod(mFrameCallbackObj, iframecallback_fields.onFrame, buf);
-			env->ExceptionClear();
-			env->DeleteLocalRef(buf);
+			if(iframecallback_fields.onFrame != NULL && buf != NULL){
+                env->CallVoidMethod(mFrameCallbackObj, iframecallback_fields.onFrame, buf);
+            }
+            env->ExceptionClear();
+            if (buf != NULL) {
+                env->DeleteLocalRef(buf);
+            }
 		}
  SKIP:
 		recycle_frame(callback_frame);

@@ -1000,7 +1000,13 @@ static void _uvc_stream_callback(struct libusb_transfer *transfer) {
 	}
 
 	if (LIKELY(strmh->running && resubmit)) {
-		libusb_submit_transfer(transfer);
+		int submit_ret = libusb_submit_transfer(transfer);
+		if (submit_ret == LIBUSB_ERROR_NO_DEVICE) {
+			LOGE("libusb_submit_transfer ret no device");
+		    strmh->running = 0;
+		    resubmit = 0;
+		    _uvc_delete_transfer(transfer);
+		}
 	} else {
 		// XXX delete non-reusing transfer
 		// real implementation of deleting transfer moves to _uvc_delete_transfer
@@ -1830,11 +1836,14 @@ uvc_error_t uvc_stream_stop(uvc_stream_handle_t *strmh) {
 		/* Wait for transfers to complete/cancel */
 		for (; 1 ;) {
 			for (i = 0; i < LIBUVC_NUM_TRANSFER_BUFS; i++) {
-				if (strmh->transfers[i] != NULL)
+				if (strmh->transfers[i] != NULL) {
+				    LOGE("uvc_stream_stop %d transfer %p:", i, strmh->transfers[i]);
 					break;
+				}
 			}
-			if (i == LIBUVC_NUM_TRANSFER_BUFS)
+			if (i == LIBUVC_NUM_TRANSFER_BUFS) {
 				break;
+			}
 			pthread_cond_wait(&strmh->cb_cond, &strmh->cb_mutex);
 		}
 		// Kick the user thread awake
@@ -1862,10 +1871,11 @@ uvc_error_t uvc_stream_stop(uvc_stream_handle_t *strmh) {
 void uvc_stream_close(uvc_stream_handle_t *strmh) {
 	UVC_ENTER();
 
-	if (!strmh) { UVC_EXIT_VOID() };
+	if (!strmh) { UVC_EXIT_VOID(); };
 
-	if (strmh->running)
+	if (strmh->running) {
 		uvc_stream_stop(strmh);
+	}
 
 	uvc_release_if(strmh->devh, strmh->stream_if->bInterfaceNumber);
 
