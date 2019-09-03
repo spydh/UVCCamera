@@ -40,7 +40,7 @@ import android.view.SurfaceHolder;
 import com.serenegiant.usb.USBMonitor.UsbControlBlock;
 
 public class UVCCamera {
-	private static final boolean DEBUG = false;	// TODO set false when releasing
+	private static final boolean DEBUG = true;	// TODO set false when releasing
 	private static final String TAG = UVCCamera.class.getSimpleName();
 	private static final String DEFAULT_USBFS = "/dev/bus/usb";
 
@@ -189,7 +189,9 @@ public class UVCCamera {
     public synchronized void open(final UsbControlBlock ctrlBlock) {
     	int result;
     	try {
-			mCtrlBlock = ctrlBlock.clone();
+            //mCtrlBlock = ctrlBlock.clone();
+            //clone会导致 对应Device被open两次，但是只有一次close
+            mCtrlBlock = ctrlBlock;
 			result = nativeConnect(mNativePtr,
 				mCtrlBlock.getVenderId(), mCtrlBlock.getProductId(),
 				mCtrlBlock.getFileDescriptor(),
